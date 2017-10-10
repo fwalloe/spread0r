@@ -16,6 +16,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+##
+# Edits by Fredrik Walløe
+# 
+# Changes:
+#  - Focus colour set to red
+#  - More pleasant font
+#
+# Plan:
+#  - Beautify program
+#  - Save and load function (save line number to file, along with name. And then use search to continue from there next time)
+##
+
+
 use strict;
 use utf8;
 use Glib qw/TRUE FALSE/;
@@ -26,12 +40,13 @@ use lib 'lib/';
 use Hyphen;
 
 # defines
-my $font = "courier new 24";
+my $font = "ariel 30";
 my $span_black_open = "<span background='white' foreground='black' font_desc='".$font."'><big>";
-my $span_blue_open = "<span background='white' foreground='blue' font_desc='".$font."'><big>";
+my $span_red_open = "<span background='white' foreground='orange' font_desc='".$font."'><big>";
 my $span_close = "</big></span>";
 my $word_width = 28;
 my $spread0r_version = "1.0";
+
 
 # globaly used gtk stuff
 my $gtk_text;
@@ -41,6 +56,8 @@ my $gtk_timer;
 
 # global variables
 my $wpm = 200;
+my $lastSentence = 0;
+my $fileName = "";
 my $pause_button;
 my $pause = 1;
 my $back_ptr = -1;
@@ -65,7 +82,7 @@ sub get_line
 		exit(-1);
 	}
 	$line =~ s/[\n\r]/ /g;
-
+	
 	return $line;
 }
 
@@ -106,6 +123,9 @@ sub get_next_word
 	$prev_back_ptr = $back_ptr;
 
 	$gtk_sentence_text->set_markup("sentence nr: ".($sentence_cnt - ($back_ptr +1)));
+
+	#Save sentence count to global variable, so that it can be saved to file
+	$lastSentence = $sentence_cnt; 
 
 	# if fast foward is specified, search the line
 	for (;$fast_forward; $fast_forward--) {
@@ -192,7 +212,7 @@ sub button_slower
 
 sub button_faster
 {
-	$wpm += 10 if($wpm < 1000);
+	$wpm += 10 if($wpm < 2000);
 	$gtk_speed_label->set_markup("WPM: $wpm");
 	return TRUE;
 }
@@ -247,7 +267,7 @@ sub set_text
 	for ($i = 0; $i < $add_to_end ; ++$i) {
 		$word_end .= " ";
 	}
-	$word = $span_black_open.$word_start.$span_close.$span_blue_open.$word_mid.$span_close.$span_black_open.$word_end.$span_close;
+	$word = $span_black_open.$word_start.$span_close.$span_red_open.$word_mid.$span_close.$span_black_open.$word_end.$span_close;
 
 	# printf("$word\n");
 	$gtk_text->set_markup($word);
@@ -306,6 +326,7 @@ sub main
 			"Open file", undef, "open", 'gtk-cancel' => 'cancel', 'gtk-ok' => 'ok');
 		if ($file_chooser->run()) {
 			$file = $file_chooser->get_filename();
+
 		}
 		$file_chooser->destroy();
 	} else {
@@ -314,7 +335,7 @@ sub main
 
 	# limit wpm
 	$wpm = 40 if ($wpm < 40);
-	$wpm = 1000 if ($wpm > 1000);
+	$wpm = 2000 if ($wpm > 2000);
 
 	# open file
 	printf("opening file: $file\n");
@@ -368,6 +389,16 @@ sub main
 	# text label, showing the current sentence
 	$gtk_sentence_text = Gtk2::Label->new();
 	$gtk_sentence_text->set_markup("sentence nr: ");
+
+	
+# Saves the sentence number to file | when you open a document you've already begun to read, the search function will check the line number and continue from there
+
+	$fileName = $file;
+		
+	open(my $filePath, ">$filePath");
+	print $filePath "hello";
+	close $filePath;
+
 
 	# horizontal box for the control buttons
 	$hbox = Gtk2::HBox->new(FALSE, 10);
